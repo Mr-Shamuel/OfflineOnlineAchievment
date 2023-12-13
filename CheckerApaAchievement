@@ -1,0 +1,1730 @@
+import Swal from "sweetalert2";
+import { toast } from "react-toastify";
+import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import DatePicker from "react-multi-date-picker";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import ViewItemsNamesModal from "./ViewItemsNamesModal";
+import dateBangla from "../../../Common/CommonDate/th_bn";
+import axiosInstance from "../../../Services/Interceptor";
+import { Button, Card, Col, Form, Row } from "react-bootstrap";
+import Breadcrumb from "../../../Common/CommonBreadcrumb/Breadcrumb";
+import Tokenvalidation from "../../../Authentication/Tokenvalidation";
+import CheckerRibbon from "../ApaAchievementCollections/CheckerRibbon";
+import { ViewProofList } from "../ApaAchievementCollections/ViewProofList";
+import QuartersWiseTable from "../ApaAchievementCollections/QuartersWiseTable";
+import { AddProofComment } from "../ApaAchievementCollections/AddProofComment";
+import { EditAchievement } from "../ApaAchievementCollections/EditAchievement";
+import { ReturnCommentList } from "../ApaAchievementCollections/ReturnCommentList";
+import { ReturnAchievement } from "../ApaAchievementCollections/ReturnAchievement";
+import { StaticToolkitData } from "../../../Common/CommonToolkit/StaticToolkitData";
+import StaticHelpingToolkit from "../../../Common/CommonToolkit/StaticHelpingToolkit";
+import AchievementWorkPlanTable from "../ApaAchievementCollections/AchievementWorkPlanTable";
+import { AchievementUpdateRequest } from "../ApaAchievementCollections/AchievementUpdateRequest";
+import ConvertBnStringToEnString from "../../../Common/CommonFunctions/ConvertBnStringToEnString";
+import ConvertEnStringToBnString from "../../../Common/CommonFunctions/ConvertEnStringToBnString";
+import { ApaAchievementUpdateRequestList } from "../ApaAchievementCollections/ApaAchievementUpdateRequestList";
+import { MakerCheckerSubmitCheckPassword } from "../ApaAchievementCollections/MakerCheckerSubmitCheckPassword";
+import { getUserInputPreviewWorkPlanTable } from "../../../Redux/Actions/Apamanagement/ApaPreparationByUser/WorkPlanTable/UserInputPreviewWorkPlanTableAction";
+import {
+  ConvertToBnNumber,
+  ConvertToEnNumber,
+} from "../../../Common/CommonFunctions/CommonNumberConverter";
+
+
+function CheckerApaAchievement(props) {
+  const { permission } = props;
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm();
+
+  const { t, i18n } = useTranslation();
+  const dispatch = useDispatch();
+  const [showToolkit, setShowToolkit] = useState(false);
+  const [filteredData, setFilterData] = useState({});
+  const [strObjeList, setStrObjList] = useState([]);
+  const [activityList, setActivityList] = useState([]);
+  const [indicatorList, setIndicatorList] = useState([]);
+  const [indicatorOtherInfoList, setIndicatorOtherInfoList] = useState([]);
+  const [disabled, setDisabled] = useState(true);
+  const [quartersList, setQuartersList] = useState([]);
+  const [createQuartersItem, setCreateQuartersItem] = useState([]);
+  const [disabledCmnt, setDisabledCmnt] = useState(true);
+  const [disableContent, setDisableContent] = useState('চূড়ান্ত দাখিল / অগ্রগতির সময় নির্ধারণ না করে অগ্রগতি দেয়া যাবে না')
+  const [show, setShow] = useState(false);
+  const [quartersWiseData, setQuartersWiseData] = useState([]);
+  const [workplanTableData, setWorkplanTableData] = useState({});
+  const [showFullAchievement, setShowFullAchievement] = useState(false);
+  const [showQuartersWise, setShowQuartersWise] = useState(false);
+  const [defaultAchievementData, setDefaultAchievementData] = useState("");
+  const [editAchievementShow, setEditAchievementShow] = useState(false);
+  const [proofListShow, setProofListShow] = useState(false);
+  const [apaAchievementStatus, setApaAchievementStatus] = useState({});
+  const [checkShow, setCheckShow] = useState(false);
+  const [submitAchievementData, setSubmitAchievementData] = useState({});
+
+  const [returnCommentShow, setReturnCommentShow] = useState(false);
+  const [returnAchievementShow, setReturnAchievementShow] = useState(false);
+  const [updateRequestAchievementShow, setupdateRequesAchievementShow] =
+    useState(false);
+  const [requestListAchievementShow, setRequestListAchievementShow] =
+    useState(false);
+
+  const [strObjName, setStrObjName] = useState({});
+  const [activityName, setActivityName] = useState({});
+  const [indicatorName, setIndicatorName] = useState({});
+  const [quarterItem, setQuarterItem] = useState({});
+
+  //bn en state
+  const [achievementValue, setAchievementValue] = useState("");
+
+  const { userinputworkplantable } = useSelector(
+    (state) => state?.UserInputWorkPlanTableData
+  );
+  //user
+  const [user, setUser] = useState({});
+
+
+  const [viewItemsNames, setViewItemsNames] = useState(false);
+  const [showDefaultLastValue, setShowDefaultLastValue] = useState(null);
+  const [defaultData, setDefaulttData] = useState(null);
+
+  //  show default last value
+  useEffect(() => {
+    let result = JSON.parse(localStorage.getItem("showLastValueStatus"));
+    setShowDefaultLastValue(result);
+
+    if (result === true) {
+      const defaultnames = JSON.parse(
+        localStorage.getItem("defaultDropdownNames")
+      );
+      setDefaulttData(defaultnames);
+    }
+  }, [showDefaultLastValue]);
+
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      console.log(event, "data events");
+      const confirmationMessage = "আপনি কি বন্ধ করতে চান??";
+      event.returnValue = confirmationMessage;
+      return confirmationMessage;
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+
+  useEffect(() => {
+    const handleOnlineStatusChange = () => {
+      if (navigator.onLine) {
+        // toast.success("আপনি অনলাইনে", {
+        //   position: toast.POSITION.TOP_RIGHT,
+        //   hideProgressBar: false,
+        //   autoClose: 3000,
+        //   theme: "colored",
+        // });
+
+        Swal.fire({
+          icon: "success",
+          title: "আপনার ইন্টারনেট সংযোগ স্থাপিত হয়েছে",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "ঠিক আছে",
+        });
+      } else {
+        // toast.warn("  অফলাইনে", {
+        //   position: toast.POSITION.TOP_RIGHT,
+        //   hideProgressBar: false,
+        //   autoClose: 3000,
+        //   theme: "colored",
+        // });
+
+        Swal.fire({
+          icon: "warning",
+          title: "আপনার ইন্টারনেট সংযোগ বিচ্ছিন্ন হয়ে গিয়েছে",
+          confirmButtonColor: "#3085d6",
+          confirmButtonText: "ঠিক আছে",
+        });
+      }
+    };
+
+    // Add event listeners for online and offline events
+    window.addEventListener("online", handleOnlineStatusChange);
+    window.addEventListener("offline", handleOnlineStatusChange);
+
+    // Cleanup event listeners on component unmount
+    return () => {
+      window.removeEventListener("online", handleOnlineStatusChange);
+      window.removeEventListener("offline", handleOnlineStatusChange);
+    };
+  }, []);
+
+
+  const handleChecking = () => {
+    setAchievementValue(""); //making field empty
+
+    toast.success("সেভ করা হয়েছে", {
+      position: toast.POSITION.TOP_RIGHT,
+      hideProgressBar: false,
+      theme: "colored",
+      autoClose: 500,
+    });
+
+
+    const stopIntervalIds = setInterval(() => {
+      console.log("offline");
+      if (navigator.onLine === true) {
+        clearInterval(stopIntervalIds); //if online then stop
+
+        Swal.fire({
+          icon: "warning",
+          showCancelButton: true,
+          showDenyButton: true,
+          title: `আপনি এখন অনলাইনে আছেন...
+           আপনি কি এখন ডেটা জমা দিতে চান?`,
+          confirmButtonColor: "#3085d6",
+          cancelButtonColor: "#d33",
+          denyButtonColor: "#3085d6",
+          confirmButtonText: "হ্যাঁ",
+          cancelButtonText: "না",
+          denyButtonText: `দেখুন`,
+        }).then((result) => {
+          if (result.isConfirmed) {
+
+            postAllOfflineData()
+
+
+          } else if (result.isDenied) {
+            setViewItemsNames(true);
+          } else {
+            localStorage.setItem("isUploadedStatus", false);
+            localStorage.setItem("myItems", JSON.stringify([]));
+            localStorage.setItem("myItemsNames", JSON.stringify([]));
+          }
+        });
+      }
+    }, 1000);
+  };
+
+  const postAllOfflineData = () => {
+    const datas = JSON.parse(localStorage.getItem("myItems"));
+    console.log(datas, "datas");
+    datas?.forEach((item) => {
+      console.log(item, "single data");
+      // progressSubmitHandler(item, 'storedData');
+
+      axiosInstance
+        .post(`/apa-config/api/v1/achivement/create`, {
+          apaId: item?.apaId,
+          indicatorId: item?.indicatorId,
+          submissionTypeId: item?.submissionTypeId,
+          quarterId: item?.quarterId,
+          achievement: ConvertBnStringToEnString(item?.achievement),
+        })
+
+        .then((res) => {
+          if (res?.status === 201) {
+            toast.success("অর্জন দেওয়া হয়েছে", {
+              position: toast.POSITION.TOP_RIGHT,
+              hideProgressBar: false,
+              autoClose: 500,
+              theme: "colored",
+            });
+
+            reset();
+            setValue("achievement", "");
+            setAchievementValue("");
+          }
+        })
+        .catch((err) => {
+          console.log(err.message);
+        });
+    });
+
+    //default Name
+    localStorage.setItem("showLastValueStatus", true);
+    setShowDefaultLastValue(
+      localStorage.getItem("showLastValueStatus")
+    );
+
+    localStorage.setItem("isUploadedStatus", false);
+    localStorage.setItem("myItems", JSON.stringify([]));
+    localStorage.setItem("myItemsNames", JSON.stringify([]));
+
+  }
+
+  useEffect(() => {
+    const isUploadedStatus = JSON.parse(
+      localStorage.getItem("isUploadedStatus")
+    );
+    const myItemStorage = JSON.parse(localStorage.getItem("myItems"));
+
+
+    if (
+      navigator.onLine === true &&
+      isUploadedStatus === true &&
+      myItemStorage?.length > 0
+    ) {
+      Swal.fire({
+        icon: "warning",
+        showCancelButton: true,
+        showDenyButton: true,
+        title: `আপনি এখন অনলাইনে আছেন...
+           আপনি কি এখন ডেটা জমা দিতে চান?`,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        denyButtonColor: "#3085d6",
+        confirmButtonText: "হ্যাঁ",
+        cancelButtonText: "না",
+        denyButtonText: `দেখুন`,
+      }).then((result) => {
+        if (result.isConfirmed) {
+
+          postAllOfflineData()
+
+
+        } else if (result.isDenied) {
+          setViewItemsNames(true);
+        } else {
+          localStorage.setItem("myItems", JSON.stringify([]));
+          localStorage.setItem("myItemsNames", JSON.stringify([]));
+          localStorage.setItem("isUploadedStatus", false);
+        }
+      });
+    }
+  }, []);
+
+  /// offline features start 
+  useEffect(() => {
+    // user
+
+    axiosInstance
+      .get("/core-module/api/v1/user-information/details")
+      .then((res) => {
+        setUser(res?.data?.data);
+        localStorage.setItem(
+          "/core-module/api/v1/user-information/details",
+          JSON.stringify(res?.data?.data)
+        );
+      })
+      .catch((err) => {
+        console.log(err.message);
+      });
+
+    // fymw
+    let apaId;
+    axiosInstance
+      .get(`/apa-config/api/v1/achivement-info/fy-mw`)
+      .then((res) => {
+        if (res?.status === 200) {
+          setFilterData(res?.data?.data);
+          setWorkplanTableData({});
+          setQuartersList(res?.data?.data?.quarters);
+          localStorage.setItem(
+            "/apa-config/api/v1/achivement-info/fy-mw",
+            JSON.stringify(res?.data?.data)
+          );
+          apaId = res?.data?.data.apaId;
+          console.log(res?.data?.data, "fymw");
+
+          // str obj
+          if (res?.data?.data) {
+            getStrObjList(res?.data?.data);
+            const strObjData = JSON.parse(
+              localStorage.getItem(
+                "/apa-config/api/v1/achivement-info/strategic-objectives"
+              )
+            );
+
+            console.log(strObjData, "strobj data");
+            strObjData.forEach((item) => {
+              getActivityList(item?.strategicObjectiveId);
+              const activityDatas = JSON.parse(
+                localStorage.getItem(
+                  `/apa-config/api/v1/achivement-info/activities/${item?.strategicObjectiveId}`
+                )
+              );
+
+              if (activityDatas) {
+                console.log(activityDatas, "activityDatas");
+                activityDatas.forEach((activitie_Item) => {
+                  console.log(activitie_Item, "activitie_Item");
+
+                  getIndicatorList(activitie_Item?.activityId, apaId);
+                  const IndicatorLists = JSON.parse(
+                    localStorage.getItem(
+                      `/apa-config/api/v1/achivement-info/indicators/${activitie_Item?.activityId}/apa/${apaId}`
+                    )
+                  );
+                  console.log(IndicatorLists, "IndicatorLists");
+                  if (IndicatorLists) {
+                    IndicatorLists.forEach((indicatorItem) => {
+                      axiosInstance
+                        .get(
+                          `/apa-config/api/v1/achivement-info/indicator-extras/${indicatorItem?.indicatorId}`
+                        )
+                        .then((extraItem) => {
+                          console.log(extraItem?.data?.data);
+                          localStorage.setItem(
+                            `/apa-config/api/v1/achivement-info/indicator-extras/${indicatorItem?.indicatorId}`,
+                            JSON.stringify(extraItem?.data?.data)
+                          );
+
+                          res?.data?.data?.quarters.forEach((quarter) => {
+                            console.log(quarter, "123quater");
+                            let postAchievement = {
+                              apaId: apaId,
+                              submissionTypeId:
+                                extraItem?.data?.data?.achievementQuarterDetails
+                                  .submissionTypeId,
+                              quarterId: quarter?.id,
+                              indicatorId: indicatorItem?.indicatorId,
+                            };
+
+                            // indicator - wise - achievement
+
+                            axiosInstance
+                              .post(
+                                `/apa-config/api/v1/achivement-info/indicator-wise-achievement`,
+                                postAchievement
+                              )
+                              .then((IndWise_Ach) => {
+                                localStorage.setItem(
+                                  `/apa-config/api/v1/achivement-info/indicator-wise-achievement`,
+                                  JSON.stringify(IndWise_Ach?.data?.data)
+                                );
+                              })
+                              .catch((err) => {
+                                console.log(err, "err");
+                              });
+
+                            // /achivement-info/status
+                            axiosInstance
+                              .post(
+                                `/apa-config/api/v1/achivement-info/status`,
+                                {
+                                  apaId: apaId,
+                                  submissionTypeId:
+                                    extraItem?.data?.data
+                                      ?.achievementQuarterDetails
+                                      .submissionTypeId,
+                                  quarterId: quarter?.id,
+                                }
+                              )
+                              .then((statusItem) => {
+                                if (statusItem?.data?.data !== undefined) {
+                                  setDisableContent(null)
+                                  if (
+                                    statusItem?.data?.data?.makerIsSubmitted ===
+                                    1
+                                  ) {
+                                    ///tttt
+                                    localStorage.setItem(
+                                      `/apa-config/api/v1/achivement-info/status`,
+                                      JSON.stringify(statusItem?.data?.data)
+                                    );
+                                  }
+                                }
+                              })
+                              .catch((err) => {
+                                console.log(err, "errrrr");
+                              });
+
+                            // workplan preview
+                            let postWorkplan = {
+                              structureId: res?.data?.data?.structureId,
+                              organizationId: res?.data?.data?.organizationId,
+                              mandatoryWeightId:
+                                res?.data?.data?.mandatoryWeightId,
+                              fiscalYearId: res?.data?.data?.fiscalYearId,
+                              submissionTypeId:
+                                indicatorOtherInfoList
+                                  ?.achievementQuarterDetails?.submissionTypeId,
+                              // quarterId: createQuartersItem,
+                              quarterId: quarter?.id,
+                            };
+
+                            axiosInstance
+                              .post(
+                                `/apa-config/api/v1/structure/workplan-table-preview/${res?.data?.data?.workplanTableId}`,
+                                postWorkplan
+                              )
+                              .then((previewres) => {
+                                // console.log(previewres?.data?.data)
+                                localStorage.setItem(
+                                  `/apa-config/api/v1/structure/workplan-table-preview/${res?.data?.data?.workplanTableId}`,
+                                  JSON.stringify(previewres?.data?.data)
+                                );
+                              });
+                          });
+                        });
+                    });
+                  }
+                });
+              }
+            });
+          }
+        }
+      })
+      .catch((err) => {
+        console.log(err, "err");
+      });
+  }, [filteredData?.apaId]);
+
+  ///offline features end
+
+  useEffect(() => {
+    if (navigator.onLine === true) {
+      // user
+      axiosInstance
+        .get("/core-module/api/v1/user-information/details")
+        .then((res) => {
+          setUser(res?.data?.data);
+          localStorage.setItem(
+            "/core-module/api/v1/user-information/details",
+            JSON.stringify(res?.data?.data)
+          );
+        })
+        .catch((err) => {
+          console.log(err.message);
+        });
+
+      // fy-mw
+      axiosInstance
+        .get(`/apa-config/api/v1/achivement-info/fy-mw`)
+        .then((res) => {
+          if (res?.status === 200) {
+            setFilterData(res?.data?.data);
+            setWorkplanTableData({});
+            setQuartersList(res?.data?.data?.quarters);
+            localStorage.setItem(
+              "/apa-config/api/v1/achivement-info/fy-mw",
+              JSON.stringify(res?.data?.data)
+            );
+          }
+        })
+        .catch((err) => {
+          console.log(err, "err");
+        });
+    } else {
+      const achivement_info = localStorage.getItem(
+        "/apa-config/api/v1/achivement-info/fy-mw"
+      );
+      setFilterData(JSON.parse(achivement_info));
+      setWorkplanTableData({});
+      setQuartersList(JSON.parse(achivement_info?.quarters));
+    }
+  }, []);
+
+
+
+  let getStrObjList = (postData) => {
+    if (navigator.onLine === true) {
+      axiosInstance
+        .post(
+          `/apa-config/api/v1/achivement-info/strategic-objectives`,
+          postData
+        )
+        .then((res) => {
+          setStrObjList(res?.data?.data);
+          localStorage.setItem(
+            "/apa-config/api/v1/achivement-info/strategic-objectives",
+            JSON.stringify(res?.data?.data)
+          );
+        })
+        .catch((err) => {
+          console.log(err, "err");
+        });
+    } else {
+      const strObjList = localStorage.getItem(
+        "/apa-config/api/v1/achivement-info/strategic-objectives"
+      );
+      setStrObjList(JSON.parse(strObjList));
+    }
+  };
+
+  const changeQuarterHandler = (e) => {
+    setShowDefaultLastValue(localStorage.setItem("showLastValueStatus", false)); //when dropdown change it will remove last values
+
+    if (e.target.value) {
+      setCreateQuartersItem(e.target.value);
+      getStrObjList(filteredData);
+      const id = quartersList?.find((item) => item?.id == e.target.value);
+      setQuarterItem(id);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDefaultAchievementData("");
+      if (
+        indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId &&
+        indicatorOtherInfoList?.indicatorId
+      ) {
+        filterTableData(
+          indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+          indicatorOtherInfoList?.indicatorId,
+          e.target.value
+        );
+        achievementStatus(
+          indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+          e.target.value
+        );
+      }
+      setValue("achievement", "");
+      setAchievementValue("");
+    } else {
+      setCreateQuartersItem([]);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDefaultAchievementData("");
+      setValue("achievement", "");
+      setAchievementValue("");
+    }
+  };
+
+  let getActivityList = (id) => {
+    if (navigator.onLine === true) {
+      axiosInstance
+        .get(`/apa-config/api/v1/achivement-info/activities/${id}`)
+        .then((res) => {
+          setActivityList(res?.data?.data);
+          localStorage.setItem(
+            `/apa-config/api/v1/achivement-info/activities/${id}`,
+            JSON.stringify(res?.data?.data)
+          );
+        })
+        .catch((err) => {
+          console.log(err, "err");
+        });
+    } else {
+      const activityList = localStorage.getItem(
+        `/apa-config/api/v1/achivement-info/activities/${id}`
+      );
+
+      setActivityList(JSON.parse(activityList));
+    }
+  };
+
+  const changeStrObjHandler = (e) => {
+    setShowDefaultLastValue(localStorage.setItem("showLastValueStatus", false)); //when dropdown change it will remove last values
+
+    if (e.target.value) {
+      getActivityList(e.target.value);
+      const strObje = strObjeList?.find(
+        (item) => item?.strategicObjectiveId == e.target.value
+      );
+      setStrObjName(strObje);
+      setIndicatorList([]);
+      setIndicatorOtherInfoList([]);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDisabled(true);
+      setDefaultAchievementData("");
+      reset();
+    } else {
+      setIndicatorList([]);
+      setIndicatorOtherInfoList([]);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDisabled(true);
+      setDefaultAchievementData("");
+      reset();
+    }
+  };
+
+  let getIndicatorList = (id, apaId) => {
+    if (navigator.onLine === true) {
+      axiosInstance
+        .get(
+          // `/apa-config/api/v1/achivement-info/indicators/${id}/apa/${filteredData?.apaId}`
+          `/apa-config/api/v1/achivement-info/indicators/${id}/apa/${apaId}`
+        )
+        .then((res) => {
+          setIndicatorList(res?.data?.data);
+          localStorage.setItem(
+            `/apa-config/api/v1/achivement-info/indicators/${id}/apa/${apaId}`,
+            JSON.stringify(res?.data?.data)
+          );
+        })
+        .catch((err) => {
+          console.log(err, "err");
+        });
+    } else {
+      const indicatorLists = localStorage.getItem(
+        `/apa-config/api/v1/achivement-info/indicators/${id}/apa/${apaId}`
+      );
+      setIndicatorList(JSON.parse(indicatorLists));
+    }
+  };
+
+  const changeActivityHandler = (e) => {
+    setShowDefaultLastValue(localStorage.setItem("showLastValueStatus", false)); //when dropdown change it will remove last values
+
+    if (e.target.value) {
+      getIndicatorList(e.target.value, filteredData?.apaId);
+
+      const actObje = activityList?.find(
+        (item) => item?.activityId == e.target.value
+      );
+      setActivityName(actObje);
+      setIndicatorOtherInfoList([]);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDisabled(true);
+      setDefaultAchievementData("");
+      reset();
+    } else {
+      setIndicatorList([]);
+      setIndicatorOtherInfoList([]);
+      setWorkplanTableData([]);
+      setQuartersWiseData([]);
+      setShowQuartersWise(false);
+      setDisabled(true);
+      setDefaultAchievementData("");
+      reset();
+    }
+  };
+
+  const filterTableData = (submissionTypeId, indicatorId, qtrId) => {
+    if (submissionTypeId) {
+      let postAchievement = {
+        apaId: filteredData?.apaId,
+        submissionTypeId: submissionTypeId,
+        quarterId: qtrId ? qtrId : createQuartersItem,
+        indicatorId: indicatorId,
+      };
+
+      if (navigator.onLine === true) {
+        axiosInstance
+          .post(
+            `/apa-config/api/v1/achivement-info/indicator-wise-achievement`,
+            postAchievement
+          )
+          .then((res) => {
+            if (res?.status === 200) {
+              setQuartersWiseData(res?.data?.data);
+              setShowQuartersWise(true);
+
+              localStorage.setItem(
+                `/apa-config/api/v1/achivement-info/indicator-wise-achievement`,
+                JSON.stringify(res?.data?.data)
+              );
+            }
+          })
+          .catch((err) => {
+            console.log(err, "err");
+          });
+      } else {
+        setShowQuartersWise(true);
+        const QuartersWiseData = localStorage.getItem(
+          `/apa-config/api/v1/achivement-info/indicator-wise-achievement`
+        );
+        setQuartersWiseData(JSON.parse(QuartersWiseData));
+      }
+    }
+  };
+
+  const achievementStatus = (submissionTypeId, qtrId) => {
+    if (navigator.onLine === true) {
+      if (submissionTypeId) {
+        let postAchievementStatus = {
+          apaId: filteredData?.apaId,
+          submissionTypeId: submissionTypeId,
+          quarterId: qtrId ? qtrId : createQuartersItem,
+        };
+        axiosInstance
+          .post(
+            `/apa-config/api/v1/achivement-info/status`,
+            postAchievementStatus
+          )
+          .then((res) => {
+            if (res?.data?.data !== undefined) {
+              setApaAchievementStatus(res?.data?.data); 
+
+              if (res?.data?.data?.isCheckerSubmissionAllowed === 1 && res?.data?.data?.checkerFinalSubmitted === 1) {
+                setDisabledCmnt(false)
+                setDisableContent(null)
+
+              } else {
+                setDisabledCmnt(true)
+                setDisableContent(null)
+
+              }
+
+              // localStorage.setItem(`/apa-config/api/v1/achivement-info/status`,
+              //   JSON.stringify(res?.data?.data)
+              // );
+
+              if (res?.data?.data?.makerIsSubmitted === 1) {
+                ///tttt
+                localStorage.setItem(
+                  `/apa-config/api/v1/achivement-info/status`,
+                  JSON.stringify(res?.data?.data)
+                );
+              }
+            } else {
+              setApaAchievementStatus({});
+              setDisabledCmnt(true);
+            }
+          })
+          .catch((err) => {
+            console.log(err, "errrrr");
+          });
+      }
+    } else {
+      const status = JSON.parse(
+        localStorage.getItem(`/apa-config/api/v1/achivement-info/status`)
+      );
+
+      
+      
+
+      if (status !== undefined) {
+        setApaAchievementStatus(status); 
+        if (status?.isCheckerSubmissionAllowed === 1 && status?.checkerFinalSubmitted === 1) {
+          setDisabledCmnt(false)
+          setDisableContent(null)
+
+        } else {
+          setDisabledCmnt(true)
+          setDisableContent(null)
+
+        }
+
+
+       
+      } else {
+        setApaAchievementStatus({});
+        setDisabledCmnt(true);
+      }
+    }
+  };
+
+  let getIndicatorOthersInfo = (id) => {
+    if (navigator.onLine === true) {
+      axiosInstance
+        .get(`/apa-config/api/v1/achivement-info/indicator-extras/${id}`)
+        .then((res) => {
+          if (res?.data?.data?.unitBn !== null) {
+            setIndicatorOtherInfoList(res?.data?.data);
+            localStorage.setItem(
+              `/apa-config/api/v1/achivement-info/indicator-extras/${id}`,
+              JSON.stringify(res?.data?.data)
+            );
+            setDisabled(false);
+
+            filterTableData(
+              res?.data?.data?.achievementQuarterDetails?.submissionTypeId,
+              res?.data?.data?.indicatorId
+            );
+            achievementStatus(
+              res?.data?.data?.achievementQuarterDetails?.submissionTypeId,
+              null
+            );
+          } else {
+            setIndicatorOtherInfoList([]);
+            setDisabled(true);
+            reset();
+          }
+        })
+        .catch((err) => {
+          console.log(err, "err");
+        });
+    } else {
+      let data = JSON.parse(
+        localStorage.getItem(
+          `/apa-config/api/v1/achivement-info/indicator-extras/${id}`
+        )
+      );
+
+      if (data.unitBn !== null) {
+        setIndicatorOtherInfoList(data);
+        setDisabled(false);
+        filterTableData(
+          data?.achievementQuarterDetails?.submissionTypeId,
+          data?.indicatorId
+        );
+        achievementStatus(
+          data?.achievementQuarterDetails?.submissionTypeId,
+          null
+        );
+      } else {
+        setIndicatorOtherInfoList([]);
+        setDisabled(true);
+        reset();
+      }
+    }
+  };
+
+  const changeIndicatorHandler = (e) => {
+    setShowDefaultLastValue(localStorage.setItem("showLastValueStatus", false)); //when dropdown change it will remove last values
+
+    if (navigator.onLine === true) {
+      if (e.target.value) {
+        getIndicatorOthersInfo(e.target.value);
+        const indiObje = indicatorList?.find(
+          (item) => item?.indicatorId == e.target.value
+        );
+        setIndicatorName(indiObje);
+        setWorkplanTableData([]);
+        setQuartersWiseData([]);
+        setShowQuartersWise(false);
+        setDefaultAchievementData("");
+        setDisabledCmnt(true);
+      } else {
+        setIndicatorOtherInfoList([]);
+        setWorkplanTableData([]);
+        setQuartersWiseData([]);
+        setShowQuartersWise(false);
+        setDefaultAchievementData("");
+        setDisabledCmnt(true);
+        reset();
+      }
+    } else {
+      if (e.target.value) {
+        getIndicatorOthersInfo(e.target.value);
+        const indiObje = indicatorList?.find(
+          (item) => item?.indicatorId == e.target.value
+        );
+        setIndicatorName(indiObje);
+        setWorkplanTableData([]);
+        //  setQuartersWiseData([]);
+        setShowQuartersWise(true);
+        setDefaultAchievementData("");
+        //  setDisabledCmnt(true);
+      } else {
+        setIndicatorOtherInfoList([]);
+        setWorkplanTableData([]);
+        //  setQuartersWiseData([]);
+        setShowQuartersWise(true);
+        setDefaultAchievementData("");
+        //  setDisabledCmnt(true);
+        reset();
+      }
+    }
+  };
+
+  const openPrfCmt = () => {
+    setShow(true);
+  };
+
+  // achievement date and time
+  const handleAchievementChange = (e, type) => {
+    if (type === "DATE") {
+      const year = e.year;
+      const month =
+        e.month.number >= 10 ? e.month.number : `0${e.month.number}`;
+      const day = e.day >= 10 ? e.day : `0${e.day}`;
+      const startDates = `${year}-${month}-${day}`;
+      console.log(startDates, "x12123");
+      setAchievementValue(startDates);
+    } else {
+      let userInput = e.target.value;
+      if (i18n.language === "en") {
+        userInput = ConvertToEnNumber(userInput); //en
+      } else {
+        userInput = ConvertToBnNumber(userInput); //bn
+      }
+      const isValidInput = /^[0-9০-৯.]+[\b\u2190\u2192]*$/.test(userInput);
+      if (isValidInput || userInput === "") {
+        setAchievementValue(userInput);
+      }
+    }
+  };
+
+  const progressSubmitHandler = (data, type) => {
+    if (navigator.onLine === true) {
+      data.achievement = ConvertBnStringToEnString(achievementValue);
+      setDisabledCmnt(true);
+
+      let postData = {
+        apaId: filteredData?.apaId,
+        indicatorId: indicatorOtherInfoList?.indicatorId,
+        submissionTypeId:
+          indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+        quarterId: createQuartersItem,
+        achievement: data?.achievement,
+      };
+
+      axiosInstance
+        .post(`/apa-config/api/v1/achivement/create`, postData)
+        .then((res) => {
+          if (res?.status === 201) {
+            toast.success("অর্জন দেওয়া হয়েছে", {
+              position: toast.POSITION.TOP_RIGHT,
+              hideProgressBar: false,
+              autoClose: 500,
+              theme: "colored",
+            });
+            filterTableData(
+              indicatorOtherInfoList?.achievementQuarterDetails
+                ?.submissionTypeId,
+              indicatorOtherInfoList?.indicatorId
+            );
+            reset();
+            setValue("achievement", "");
+            setAchievementValue("");
+            setDisabledCmnt(false);
+          }
+        })
+        .catch((err) => {
+          console.log(err, "errrrrr");
+        });
+    } else {
+      let postData = {
+        apaId: filteredData?.apaId,
+        indicatorId: indicatorOtherInfoList?.indicatorId,
+        submissionTypeId:
+          indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+        quarterId: createQuartersItem,
+        // achievement: data?.achievement,
+        achievement: achievementValue,
+      };
+
+      const items = JSON.parse(localStorage.getItem("myItems")) || [];
+      const isDuplicate = items.some((item) => item === postData);
+
+      if (!isDuplicate) {
+        const newItems = [...items, postData];
+        localStorage.setItem("myItems", JSON.stringify(newItems));
+        console.log(newItems, "arraylistss");
+      } else {
+        console.log("Item already exists, not adding duplicates.");
+      }
+      localStorage.setItem("isUploadedStatus", true);
+
+      ////saving name to local store
+      const postNames = {
+        quarterItem: quarterItem?.nameBn,
+        strObjName: strObjName?.nameBn,
+        activityName: activityName?.nameBn,
+        indicatorName: indicatorName?.nameBn,
+        achievement: achievementValue,
+      };
+
+      const itemsNames = JSON.parse(localStorage.getItem("myItemsNames")) || [];
+      const newItemsNames = [...itemsNames, postNames];
+      localStorage.setItem("myItemsNames", JSON.stringify(newItemsNames));
+
+      //default dropdown values
+      let defaultNames = newItemsNames[newItemsNames?.length - 1]; //storing lastItem
+      localStorage.setItem(
+        "defaultDropdownNames",
+        JSON.stringify(defaultNames)
+      );
+
+      handleChecking();
+    }
+  };
+
+  const viewFullAchievement = () => {
+    let postWorkplan = {
+      structureId: filteredData?.structureId,
+      organizationId: filteredData?.organizationId,
+      mandatoryWeightId: filteredData?.mandatoryWeightId,
+      fiscalYearId: filteredData?.fiscalYearId,
+      submissionTypeId:
+        indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+      quarterId: createQuartersItem,
+    };
+    if (navigator.onLine === true) {
+      if (postWorkplan) {
+        dispatch(
+          getUserInputPreviewWorkPlanTable(
+            filteredData?.workplanTableId,
+            postWorkplan
+          )
+        );
+        Tokenvalidation();
+        setShowFullAchievement(true);
+      }
+    } else {
+      setShowFullAchievement(true);
+      const WorkplanData = JSON.parse(
+        localStorage.getItem(
+          `/apa-config/api/v1/structure/workplan-table-preview/${filteredData?.workplanTableId}`
+        )
+      );
+      setWorkplanTableData(WorkplanData);
+      console.log(postWorkplan, "this is post");
+    }
+  };
+
+  useEffect(() => {
+    setWorkplanTableData(userinputworkplantable);
+  }, [userinputworkplantable]);
+
+  const submitAchievement = () => {
+    let postAchievement = {
+      apaId: filteredData?.apaId,
+      submissionTypeId:
+        indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId,
+      quarterId: createQuartersItem,
+      checkerIsSubmitted: 1,
+    };
+    setSubmitAchievementData(postAchievement);
+    setCheckShow(true);
+  };
+
+  const returnAchievement = () => {
+    setReturnAchievementShow(true);
+  };
+
+  const requestForUpdate = () => {
+    setupdateRequesAchievementShow(true);
+  };
+
+  const requestList = () => {
+    setRequestListAchievementShow(true);
+  };
+
+  console.log(strObjName, "strObjName");
+  console.log(activityName, "activityName");
+  console.log(indicatorName, "indicatorName");
+  console.log(quarterItem, "quarterItem");
+
+  const toolkitData = {
+    title: "অগ্রগতি(পরিবেক্ষণকারী)",
+    description:
+      "প্রতিটি অফিস কর্তৃক দাখিলকৃত চূড়ান্ত এপিএ-এর উপর প্রতি কোয়ার্টার কিংবা প্রতি মাসে অগ্রগতি দাখিল করতে হবে। মূলতঃ প্রতিটি সূচকে অগ্রগতি দাখিল করতে হবে। অগ্রগতি দাখিলের ক্ষেত্রে প্রমাণক এবং মন্তব্য দেওয়া যাবে। ",
+  };
+  return (
+    <div className="main-container container">
+      {/* breadcrumb-start */}
+      <Breadcrumb
+        toolkit={true}
+        toolkitData={toolkitData}
+        currentMenu={false}
+        mainMenu={"অগ্রগতি"}
+        subMenu={"অগ্রগতি(পরিবেক্ষণকারী)"}
+        subSubMenu={false}
+      />
+      {/* breadcrumb-end */}
+
+      <Card>
+        <Card.Body>
+          <Row>
+            <Col lg={6} md={6} sm={12} className="">
+              <Form className="card p-3 background-light-info">
+                <Row>
+                  <Col lg={12} md={12} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      কোয়ার্টার/মাস
+                      <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Select onChange={(e) => changeQuarterHandler(e)}>
+                      {showDefaultLastValue && (
+                        <option value="" selected>
+                          {ConvertEnStringToBnString(defaultData?.quarterItem)}
+                        </option>
+                      )}
+
+                      <option value="" selected>
+                        {t("CommonBtn.placeholder")}
+                      </option>
+
+                      {quartersList?.map((qtrItem, strIndx) => (
+                        <option value={qtrItem?.id} key={qtrItem?.id}>
+                          {qtrItem?.nameBn}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    {errors?.quater?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  <Col lg={12} md={12} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      {t("workPlanTable.columName1")}
+                      <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Select onChange={(e) => changeStrObjHandler(e)}>
+                      {/* showing defaut last value */}
+                      {showDefaultLastValue && (
+                        <option value="" selected>
+                          {ConvertEnStringToBnString(defaultData?.strObjName)}
+                        </option>
+                      )}
+
+                      <option value="" selected disabled>
+                        {t("CommonBtn.placeholder")}
+                      </option>
+                      {/* for mandatory  */}
+                      <optgroup label="আবশ্যিক কৌশলগত উদ্দেশ্য">
+                        {strObjeList?.map(
+                          (strItem, strIndx) =>
+                            strItem?.isHigherOffice === 1 && (
+                              <option
+                                value={strItem?.strategicObjectiveId}
+                                key={strItem?.strategicObjectiveId}
+                              >
+                                {ConvertEnStringToBnString(strItem?.nameBn)}
+                              </option>
+                            )
+                        )}
+                      </optgroup>
+
+                      {/* for non Mandatory  */}
+                      <optgroup
+                        label={`${user?.hierarchyName} কৌশলগত উদ্দেশ্য`}
+                      >
+                        {strObjeList?.map(
+                          (strItem, strIndx) =>
+                            strItem?.isHigherOffice === 0 && (
+                              <option
+                                value={strItem?.strategicObjectiveId}
+                                key={strItem?.strategicObjectiveId}
+                              >
+                                {ConvertEnStringToBnString(strItem?.nameBn)}
+                              </option>
+                            )
+                        )}
+                      </optgroup>
+                    </Form.Select>
+                    {errors?.columnNameBn?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  <Col lg={12} md={12} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      {t("workPlanTable.columName3")}
+                      <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Select onChange={(e) => changeActivityHandler(e)}>
+                      {/* showing defaut last value */}
+                      {showDefaultLastValue && (
+                        <option value="" selected>
+                          {ConvertEnStringToBnString(defaultData?.activityName)}
+                        </option>
+                      )}
+
+                      <option value="" selected>
+                        {t("CommonBtn.placeholder")}
+                      </option>
+
+                      {activityList?.map((actvtyItem, actvtyIndx) => (
+                        <option
+                          value={actvtyItem?.activityId}
+                          key={actvtyItem?.activityId}
+                        >
+                          {ConvertEnStringToBnString(actvtyItem?.nameBn)}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    {errors?.columnNameBn?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  <Col lg={12} md={12} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      {t("workPlanTable.columName4")}
+                      <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Select onChange={(e) => changeIndicatorHandler(e)}>
+                      {/* showing defaut last value */}
+                      {showDefaultLastValue && (
+                        <option value="" selected>
+                          {ConvertEnStringToBnString(defaultData?.indicatorName)}
+                        </option>
+                      )}
+
+                      <option value="" selected>
+                        {t("CommonBtn.placeholder")}
+                      </option>
+                      {indicatorList?.map((indiItem, indiIndx) => (
+                        <option
+                          value={indiItem?.indicatorId}
+                          key={indiItem?.indicatorId}
+                        >
+                          {ConvertEnStringToBnString(indiItem?.nameBn)}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    {errors?.columnNameBn?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  {quartersWiseData?.achievementStatus && (
+                    <Col lg={12} md={12} sm={12}>
+                      <Form.Label className="form-label mg-b-10 text-dark">
+                        অর্জন সমূহ:
+                      </Form.Label>
+                      <p className="fw-bold text-success">
+                        {quartersWiseData?.achievementStatus
+                          ? `${quartersWiseData?.achievementStatus} এর অর্জন দেয়া হয়েছে `
+                          : "অর্জন দেয়া হয়নি "}
+                      </p>
+                    </Col>
+                  )}
+                </Row>
+              </Form>
+            </Col>
+
+            <Col lg={6} md={6} sm={12}>
+              <Form className="card p-2 background-primary">
+                <Row>
+                  <Col lg={4} md={4} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      সূচকের একক
+                      {/* <span className="text-danger">*</span> */}
+                    </Form.Label>
+                    <Form.Control
+                      className="btnReadOnlyColor cursor-not-allowed"
+                      type="text"
+                      placeholder={t("CommonBtn.placeholder2")}
+                      {...register("incator", {
+                        required: false,
+                      })}
+                      value={ConvertEnStringToBnString(indicatorOtherInfoList?.unitBn)}
+                      disabled
+                    />
+                    {errors?.incator?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  <Col lg={4} md={4} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      সূচকের মান
+                      {/* <span className="text-danger">*</span> */}
+                    </Form.Label>
+                    <Form.Control
+                      className="btnReadOnlyColor"
+                      type="text"
+                      placeholder={t("CommonBtn.placeholder2")}
+                      {...register("incatorValue", {
+                        required: false,
+                      })}
+                      value={ConvertEnStringToBnString(indicatorOtherInfoList?.weightOfIndicator)}
+                      disabled
+                    />
+                    {errors?.incatorValue?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+
+                  <Col lg={4} md={4} sm={12}>
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      গণনা পদ্ধতি
+                      {/* <span className="text-danger">*</span> */}
+                    </Form.Label>
+                    <Form.Control
+                      className="btnReadOnlyColor"
+                      type="text"
+                      placeholder={t("CommonBtn.placeholder2")}
+                      {...register("calculation", {
+                        required: false,
+                      })}
+                      value={indicatorOtherInfoList?.calculationMethod}
+                      disabled
+                    />
+                    {errors?.calculation?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+                  {indicatorOtherInfoList?.targets && (
+                    <Col lg={12} md={12} sm={12}>
+                      <Form.Label className="form-label fw-bold mb-0 text-dark">
+                        লক্ষ্যমাত্রা
+                      </Form.Label>
+                      <hr className="m-0" />
+                    </Col>
+                  )}
+                  {indicatorOtherInfoList?.targets?.map(
+                    (trgtsItem, tarIndx) => (
+                      <Col lg={4} md={4} sm={12} key={trgtsItem?.target_id}>
+                        <Form.Label className="form-label mg-b-10 text-dark">
+                          {trgtsItem?.column_name_bn}
+                          {/* <span className="text-danger">*</span> */}
+                        </Form.Label>
+
+                        <Form.Control
+                          className="btnReadOnlyColor"
+                          type={
+                            indicatorOtherInfoList?.calculationMethod ===
+                              "তারিখ"
+                              ? "text"
+                              : "text"
+                          }
+                          placeholder={t("CommonBtn.placeholder2")}
+                          {...register(`${trgtsItem?.column_name_en}`, {
+                            required: false,
+                          })}
+                          value={ConvertEnStringToBnString(trgtsItem?.user_input_txt)}
+                          disabled
+                        />
+                        {errors?.[trgtsItem?.column_name_en]?.type ===
+                          "required" && (
+                            <span
+                              className="text-danger"
+                              style={{ fontSize: "16px" }}
+                            >
+                              {i18n.language === "en"
+                                ? " Required"
+                                : "এই তথ্যটি আবশ্যক"}
+                            </span>
+                          )}
+                      </Col>
+                    )
+                  )}
+                </Row>
+              </Form>
+
+              <Form className="card p-2 background-light-info">
+                <Row className="d-flex align-items-end">
+                  <Col lg={4} md={4} sm={12} className="mb-1">
+                    <Form.Label className="form-label mg-b-10 text-dark">
+                      অর্জন
+                      <span className="text-danger">*</span>
+                    </Form.Label>
+                    {/* <Form.Control
+                      className="btnReadOnlyColor"
+                      style={{ height: "48px" }}
+                      type={
+                         
+                          ? "date"
+                          : "number"
+                      }
+                      disabled={disabledCmnt}
+                      placeholder={t("CommonBtn.placeholder2")}
+                      {...register("achievement", {
+                        required: false,
+                      })}
+                    /> */}
+
+                    {indicatorOtherInfoList?.calculationMethod === "তারিখ" ? (
+                      <DatePicker
+                        selected={achievementValue}
+                        value={achievementValue}
+                        onChange={(e) => handleAchievementChange(e, "DATE")}
+                        name="achievement"
+                        locale={i18n.language === "en" ? undefined : dateBangla}
+                        dateFormat="yyyy-MM-dd"
+                        style={{ height: "42px", width: "200%" }}
+                        placeholder={
+                          i18n.language === "en" ? "YYYY-MM-DD" : "বছর/মাস/দিন"
+                        }
+                      />
+                    ) : (
+                      <Form.Control
+                        className="btnReadOnlyColor"
+                        style={{ height: "46px" }}
+                        type="text"
+                        {...register("achievement", {
+                          required: false,
+                        })}
+                        disabled={disabledCmnt}
+                        value={achievementValue}
+                        control
+                        onChange={(e) => handleAchievementChange(e, "NUMBER")}
+                        placeholder={t("CommonBtn.placeholder2")}
+                      />
+                    )}
+                    {errors?.achievement?.type === "required" && (
+                      <span
+                        className="text-danger"
+                        style={{ fontSize: "16px" }}
+                      >
+                        {i18n.language === "en"
+                          ? " Required"
+                          : "এই তথ্যটি আবশ্যক"}
+                      </span>
+                    )}
+                  </Col>
+                  <Col lg={4} md={4} sm={12} className="mb-1">
+                    <Button
+                      variant="none"
+                      className="btn btn-primary w-100"
+                      type="submit"
+                      onClick={handleSubmit(progressSubmitHandler)}
+                      disabled={disabledCmnt}
+                    >
+                      {" "}
+                      অর্জন দিন
+                    </Button>
+                  </Col>
+
+                  <Col lg={4} md={4} sm={12} className="mb-1">
+                    <Button
+                      disabled={disabledCmnt}
+                      onClick={() => openPrfCmt()}
+                      variant="none"
+                      className="btn btn-info w-100"
+                    >
+                      প্রমাণক/মন্তব্য দিন
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+
+      <Card>
+        {showQuartersWise && (
+          <>
+            <Card.Body className="pb-2">
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="fw-bold text-dark">
+                  পূর্বের প্রদানকৃত অর্জন সমূহ
+                </div>
+                <div className="d-flex justify-content-end align-items-center gap-1">
+                  {disabledCmnt ? (
+                    <Button className="btn btn-sm btn-danger">
+                      ফেরত পাঠানো হয়েছে
+                    </Button>
+                  ) : (
+                    <Button
+                      disabled={disabledCmnt}
+                      className="btn btn-sm btn-danger"
+                      onClick={() => returnAchievement()}
+                    >
+                      ফেরত পাঠান
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="none"
+                    className="btn btn-sm btn-info"
+                    onClick={() => viewFullAchievement()}
+                  >
+                    সম্পূর্ণ অগ্রগতি প্রতিবেদন
+                  </Button>
+
+                  <Button
+                    disabled={disabledCmnt}
+                    className="btn btn-sm btn-success text-light"
+                    onClick={() => submitAchievement()}
+                  >
+                    অগ্রগতি দাখিল করুন
+                  </Button>
+                </div>
+              </div>
+            </Card.Body>
+
+            <Card.Body className="pb-2">
+              <div className="d-flex justify-content-center align-items-center gap-1">
+                <CheckerRibbon
+                  apaAchievementStatus={apaAchievementStatus}
+                  disabledCmnt={disabledCmnt}
+                  setReturnCommentShow={setReturnCommentShow}
+                  requestForUpdate={requestForUpdate}
+                  requestList={requestList}
+                />
+              </div>
+            </Card.Body>
+          </>
+        )}
+
+        <Card.Body>
+          {showQuartersWise ? (
+            <QuartersWiseTable
+              quartersWiseData={quartersWiseData}
+              setProofListShow={setProofListShow}
+              setQuarterItem={setQuarterItem}
+            />
+          ) : (
+            <div>
+              <ul style={{ color: "#3C21F7" }}>
+                <li className="text-size-20 py-2">
+                  পূর্বের প্রদানকৃত অর্জন সমূহের ডাটা দেখার জন্য অনুগ্রহপূর্বক
+                  ফিল্টার ব্যবহার করুন।
+                </li>
+
+                {disableContent && < li className="text-size-20 py-2 text-danger"> {disableContent}</li>}
+              </ul>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+
+      {showFullAchievement && (
+        <AchievementWorkPlanTable
+          userinputworkplantable={workplanTableData}
+          showFullAchievement={showFullAchievement}
+          setShowFullAchievement={setShowFullAchievement}
+          setProofListShow={setProofListShow}
+          setDefaultAchievementData={setDefaultAchievementData}
+          setEditAchievementShow={setEditAchievementShow}
+          disabled={disabledCmnt}
+          setStrObjName={setStrObjName}
+          setActivityName={setActivityName}
+          setIndicatorName={setIndicatorName}
+          setQuarterItem={setQuarterItem}
+          filteredData={filteredData}
+          submissionTypeId={
+            indicatorOtherInfoList?.achievementQuarterDetails?.submissionTypeId
+          }
+          quaterId={createQuartersItem}
+        />
+      )}
+
+      {show && (
+        <AddProofComment
+          show={show}
+          setShow={setShow}
+          filteredData={filteredData}
+          indicatorOtherInfoList={indicatorOtherInfoList}
+          quartersList={quartersList}
+          quartersItem={createQuartersItem}
+        />
+      )}
+
+      {proofListShow && (
+        <ViewProofList
+          proofListShow={proofListShow}
+          setProofListShow={setProofListShow}
+          filteredData={filteredData}
+          indicatorOtherInfoList={indicatorOtherInfoList}
+          strObjName={strObjName}
+          activityName={activityName}
+          indicatorName={indicatorName}
+          quarterItem={quarterItem}
+          quartersList={quartersList}
+          disabled={disabledCmnt}
+        />
+      )}
+
+      {editAchievementShow && (
+        <EditAchievement
+          editAchievementShow={editAchievementShow}
+          setEditAchievementShow={setEditAchievementShow}
+          filteredData={filteredData}
+          indicatorOtherInfoList={indicatorOtherInfoList}
+          quartersList={quartersList}
+          defaultAchievementData={defaultAchievementData}
+          filterTableData={filterTableData}
+          strObjName={strObjName}
+          activityName={activityName}
+          indicatorName={indicatorName}
+          quarterItem={quarterItem}
+        />
+      )}
+
+      {checkShow && (
+        <MakerCheckerSubmitCheckPassword
+          setCheckShow={setCheckShow}
+          checkShow={checkShow}
+          submitAchievementData={submitAchievementData}
+          achievementStatus={achievementStatus}
+        />
+      )}
+      {returnCommentShow && (
+        <ReturnCommentList
+          returnCommentShow={returnCommentShow}
+          setReturnCommentShow={setReturnCommentShow}
+          apaAchievementStatus={apaAchievementStatus}
+        />
+      )}
+
+      {returnAchievementShow && (
+        <ReturnAchievement
+          setReturnAchievementShow={setReturnAchievementShow}
+          returnAchievementShow={returnAchievementShow}
+          filteredData={filteredData}
+          indicatorOtherInfoList={indicatorOtherInfoList}
+          quarterItem={createQuartersItem}
+          achievementStatus={achievementStatus}
+        />
+      )}
+      {updateRequestAchievementShow && (
+        <AchievementUpdateRequest
+          updateRequestAchievementShow={updateRequestAchievementShow}
+          setupdateRequesAchievementShow={setupdateRequesAchievementShow}
+          apaAchievementStatus={apaAchievementStatus}
+        />
+      )}
+
+      {requestListAchievementShow && (
+        <ApaAchievementUpdateRequestList
+          requestListAchievementShow={requestListAchievementShow}
+          setRequestListAchievementShow={setRequestListAchievementShow}
+          filteredData={filteredData}
+        />
+      )}
+
+      {showToolkit && (
+        <StaticHelpingToolkit
+          showToolkit={showToolkit}
+          setShowToolkit={setShowToolkit}
+          toolkitData={StaticToolkitData?.makerCheckerAchievement}
+        />
+      )}
+
+      {viewItemsNames && (
+        <ViewItemsNamesModal
+          show={viewItemsNames}
+          setShow={setViewItemsNames}
+          postAllOfflineData={postAllOfflineData}
+        />
+      )}
+    </div>
+  );
+}
+
+export default CheckerApaAchievement;
